@@ -2,6 +2,7 @@
 #include <iostream>
 #include <array>
 #include <math.h>
+#include <fstream>
 
 #define WIN_WIDTH  1024
 #define WIN_HEIGHT 1024
@@ -53,7 +54,7 @@ int main() {
     
     Grid grid(CELLS_X, CELLS_Y);
 
-    int brush = 0;
+    int brush = 1;
     int running = false;
     float ticktime = 0.06;
     
@@ -64,8 +65,6 @@ int main() {
 
     infotxt.setFont(mono);
     infotxt.setCharacterSize(17);
-    infotxt.setFillColor(sf::Color(0x888888ff));
-    infotxt.setOutlineColor(sf::Color::Black);
     infotxt.setOutlineThickness(1);
 
     while (win.isOpen()) {
@@ -99,10 +98,45 @@ int main() {
                         }
                     }
                 }
+                if (ev.key.code == sf::Keyboard::S) {
+                    std::string fname;
+
+                    std::cout << "Type the file to save to: " << std::flush;
+                    std::getline(std::cin, fname);
+
+                    std::ofstream ofs(fname);
+                    for (int y = 0; y < CELLS_Y; y++) {
+                        for (int x = 0; x < CELLS_X; x++) {
+                            ofs << std::to_string(grid.get_cell(x, y));
+                        }
+                    }
+                    ofs.close();
+                }
+                if (ev.key.code == sf::Keyboard::L) {
+                    std::string fname;
+
+                    std::cout << "Type the file name to load: " << std::flush;
+                    std::getline(std::cin, fname);
+
+                    std::ifstream ifs(fname);
+                    char c;
+                    int x = 0, y = 0;
+                    while (ifs >> c) {
+                        grid.set_cell(x, y, std::stoi(std::string(1, c)));
+
+                        if ((x+1)%CELLS_X == x+1) { // Not at the end of a row
+                            x++;
+                        } else {
+                            x = 0;
+                            y++;
+                        }
+                    }
+                }
             }
         }
 
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || 
+                sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
             sf::Vector2i m_cell = sf::Mouse::getPosition(win);
             try {
                 grid.set_cell(
@@ -123,6 +157,14 @@ int main() {
                         "\n<scroll> ....... Cycle brushes" +
                         "\n<left click> ... Use brush" +
                         "\n<right click> .. Erase");
+
+        if (sf::Mouse::getPosition(win).x < 405 && sf::Mouse::getPosition(win).y < 280) {
+            infotxt.setFillColor(sf::Color(0xffffff30));
+            infotxt.setOutlineColor(sf::Color(0x00000030));
+        } else {
+            infotxt.setFillColor(sf::Color(0xffffff90));
+            infotxt.setOutlineColor(sf::Color(0x00000090));
+        }
 
         if (running && tick_clock.getElapsedTime().asSeconds() > ticktime) {
             tick_clock.restart();
@@ -190,6 +232,10 @@ void Grid::update_rects() {
 
 void Grid::update_rect(int x, int y) {
     rects.at(y).at(x).setFillColor(get_color(grid.at(y).at(x))); // Get colour from cell at x, y
+
+    rects.at(y).at(x).setOutlineColor(sf::Color(0x00000080));
+    rects.at(y).at(x).setOutlineThickness(1);
+
 }
 
 sf::Color Grid::get_color(int val) {
@@ -209,12 +255,11 @@ void Grid::draw(sf::RenderWindow& win) {
         }
     }
 }
-
 void Grid::set_cell(int x, int y, int val) {
     grid.at(y).at(x) = val;
     update_rect(x, y);
 }
 
 int Grid::get_cell(int x, int y) {
-    return grid[y][x];
+    return grid.at(y).at(x);
 }
